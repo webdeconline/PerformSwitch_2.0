@@ -87,7 +87,23 @@ namespace PerformSwitch
                 BackgroundImageLayout = ImageLayout.Stretch;
             }
             catch { BackColor = Color.Black; }
+            //----------LOGO----------//
+            var logo = new PictureBox
+            {
+                Image = Image.FromFile("logo.png"),
+                SizeMode = PictureBoxSizeMode.Zoom,
+                Size = new Size(460, 200),
+                BackColor = Color.Transparent
+            };
 
+            // horizontaal centreren van de logo
+            logo.Left = (ClientSize.Width - logo.Width) / 2;
+            // afstand van bovenkant voor de logo
+            logo.Top = 5;
+            // logo toevoegen aan de form
+            Controls.Add(logo);
+
+            //------KNOPPEN MAKEN------//
             //de powerplan knoppen maken
             int x = 35, w = 290, h = 60;
 
