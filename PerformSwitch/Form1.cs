@@ -17,13 +17,15 @@ namespace PerformSwitch
         private const string ULTIMATE = "f4ac255a-0e98-40c5-bec0-d2b600140b2b";
 
         // ====== LOGO SETTINGS (pas dit zelf aan) ======
-        private const int LogoTop = 55;          // waar logo-zone start
-        private const int LogoZoneHeight = 70;   // gereserveerde hoogte voor layout (blijft vast)
-        private const int LogoGapAfter = 18;     // afstand onder logo-zone
-
-        private const int LogoWidth = 160;       // <-- verander dit
-        private const int LogoHeight = 90;       // <-- verander dit
+        private const int LogoTop = 55;
+        private const int LogoWidth = 420;   // <-- verander dit vrij
+        private const int LogoHeight = 400;   // <-- verander dit vrij
+        private const int GapAfterLogo = 18;
         // =============================================
+
+        // App size (breedte blijft vast; hoogte kan automatisch groeien zodat niks overlap/afknipt)
+        private const int AppWidth = 360;
+        private const int AppMinHeight = 600;
 
         public Form1()
         {
@@ -36,6 +38,7 @@ namespace PerformSwitch
             Hide();
         }
 
+        // ---------------- TRAY ----------------
         private void SetupTray()
         {
             var menu = new ContextMenuStrip();
@@ -52,8 +55,19 @@ namespace PerformSwitch
             trayIcon.MouseUp += (_, e) =>
             {
                 if (e.Button != MouseButtons.Left) return;
-                if (Visible) { Hide(); ShowInTaskbar = false; }
-                else { ShowInTaskbar = true; WindowState = FormWindowState.Normal; Show(); Activate(); }
+
+                if (Visible)
+                {
+                    Hide();
+                    ShowInTaskbar = false;
+                }
+                else
+                {
+                    ShowInTaskbar = true;
+                    WindowState = FormWindowState.Normal;
+                    Show();
+                    Activate();
+                }
             };
         }
 
@@ -65,63 +79,60 @@ namespace PerformSwitch
             Application.Exit();
         }
 
+        // ---------------- UI ----------------
         private void BuildUi()
         {
             Text = "PerformSwitch";
             FormBorderStyle = FormBorderStyle.FixedSingle;
             MaximizeBox = false;
             StartPosition = FormStartPosition.CenterScreen;
-            ClientSize = new Size(360, 600);
 
-            try { BackgroundImage = Image.FromFile("background.png"); BackgroundImageLayout = ImageLayout.Stretch; }
-            catch { BackColor = Color.Black; }
+            // We starten met minimum size; later verhogen we hoogte indien nodig
+            ClientSize = new Size(AppWidth, AppMinHeight);
 
-            // ---------- LOGO ----------
             try
             {
-                var logo = new PictureBox
-                {
-                    Image = Image.FromFile("logo.png"),
-                    SizeMode = PictureBoxSizeMode.Zoom,
-                    Size = new Size(LogoWidth, LogoHeight),
-                    BackColor = Color.Transparent,
-                    Left = (ClientSize.Width - LogoWidth) / 2,
-
-                    // ? logo wordt gecentreerd binnen vaste logo-zone
-                    Top = LogoTop + (LogoZoneHeight - LogoHeight) / 2
-                };
-                Controls.Add(logo);
+                BackgroundImage = Image.FromFile("background.png");
+                BackgroundImageLayout = ImageLayout.Stretch;
             }
-            catch { /* geen logo = geen crash */ }
+            catch
+            {
+                BackColor = Color.Black;
+            }
 
-            // ? BELANGRIJK: de rest van de UI hangt NIET af van logo.Bottom
-            int topAfterLogo = LogoTop + LogoZoneHeight + LogoGapAfter;
+            int y = 0;
+
+            // ---------- LOGO ----------
+            y = AddLogoAndGetBottomY();
+
+            // Extra ruimte onder logo
+            y += GapAfterLogo;
 
             // ---------- QUICK LAUNCH ----------
             int miniW = 90, miniH = 40, gap = 12;
             int miniX = (ClientSize.Width - (miniW * 3 + gap * 2)) / 2;
-            int miniY = topAfterLogo;
 
-            Controls.Add(MakeMiniCard("Steam", new Point(miniX, miniY), miniW, miniH,
+            Controls.Add(MakeMiniCard("Steam", new Point(miniX, y), miniW, miniH,
                 () => OpenApp("steam://open/main", @"C:\Program Files (x86)\Steam\Steam.exe")));
 
-            Controls.Add(MakeMiniCard("Discord", new Point(miniX + miniW + gap, miniY), miniW, miniH,
+            Controls.Add(MakeMiniCard("Discord", new Point(miniX + miniW + gap, y), miniW, miniH,
                 () => OpenApp(null, @"%LOCALAPPDATA%\Discord\Update.exe")));
 
-            Controls.Add(MakeMiniCard("Epic", new Point(miniX + (miniW + gap) * 2, miniY), miniW, miniH,
+            Controls.Add(MakeMiniCard("Epic", new Point(miniX + (miniW + gap) * 2, y), miniW, miniH,
                 () => OpenApp(null, @"C:\Program Files (x86)\Epic Games\Launcher\Portal\Binaries\Win64\EpicGamesLauncher.exe")));
+
+            y += miniH + 25;
 
             // ---------- PERFORMANCE CARDS ----------
             int cardW = 290, cardH = 60, cardGap = 15;
             int cardX = (ClientSize.Width - cardW) / 2;
-            int cardY = miniY + miniH + 25;
 
             var c1 = new PerfCard
             {
                 Title = "Balanced",
                 SubTitle = "Quiet",
                 Neon = Color.FromArgb(0, 255, 120),
-                Location = new Point(cardX, cardY),
+                Location = new Point(cardX, y),
                 Size = new Size(cardW, cardH),
                 Cursor = Cursors.Hand
             };
@@ -132,7 +143,7 @@ namespace PerformSwitch
                 Title = "High Performance",
                 SubTitle = "Fast",
                 Neon = Color.FromArgb(80, 170, 255),
-                Location = new Point(cardX, cardY + cardH + cardGap),
+                Location = new Point(cardX, y + cardH + cardGap),
                 Size = new Size(cardW, cardH),
                 Cursor = Cursors.Hand
             };
@@ -143,7 +154,7 @@ namespace PerformSwitch
                 Title = "Ultimate Performance",
                 SubTitle = "Gaming",
                 Neon = Color.FromArgb(255, 120, 0),
-                Location = new Point(cardX, cardY + (cardH + cardGap) * 2),
+                Location = new Point(cardX, y + (cardH + cardGap) * 2),
                 Size = new Size(cardW, cardH),
                 Cursor = Cursors.Hand
             };
@@ -153,9 +164,9 @@ namespace PerformSwitch
             Controls.Add(c2);
             Controls.Add(c3);
 
-            // ---------- BRIGHTNESS ----------
-            int brightLabelY = c3.Bottom + 18;
+            y = c3.Bottom + 18;
 
+            // ---------- BRIGHTNESS ----------
             var lbl = new Label
             {
                 Text = "Brightness",
@@ -164,7 +175,7 @@ namespace PerformSwitch
                 ForeColor = Color.White,
                 Font = new Font("Segoe UI", 10),
                 Left = (ClientSize.Width - 80) / 2,
-                Top = brightLabelY
+                Top = y
             };
             Controls.Add(lbl);
 
@@ -175,7 +186,6 @@ namespace PerformSwitch
                 Left = (ClientSize.Width - 250) / 2,
                 Top = lbl.Bottom + 8
             };
-
             if (TryGetBrightness(out int b)) bar.Value = b;
             bar.BrightnessChanged += (_, val) => { try { SetBrightness(val); } catch { } };
             Controls.Add(bar);
@@ -192,6 +202,9 @@ namespace PerformSwitch
             exit.Clicked += (_, __) => ExitApp();
             Controls.Add(exit);
 
+            // ? Zorg dat ALLES altijd in beeld past (geen overlap + geen afknippen)
+            EnsureFits(exit.Bottom + 12);
+
             FormClosing += (_, e) =>
             {
                 if (!realExit)
@@ -201,6 +214,51 @@ namespace PerformSwitch
                     ShowInTaskbar = false;
                 }
             };
+        }
+
+        // Voeg logo toe en geef de Y terug waar de content mag verdergaan.
+        // Als logo te breed is, schalen we de breedte naar het scherm zodat het nooit buiten de app valt.
+        private int AddLogoAndGetBottomY()
+        {
+            // default als logo ontbreekt
+            int fallbackBottom = LogoTop;
+
+            try
+            {
+                Image img = Image.FromFile("logo.png");
+
+                // ? Nooit buiten de app: max breedte = app breedte - marge
+                int maxW = ClientSize.Width - 40;
+                int w = Math.Min(LogoWidth, maxW);
+
+                // Hoogte gebruiken zoals jij instelt (mag groot zijn)
+                int h = LogoHeight;
+
+                var logo = new PictureBox
+                {
+                    Image = img,
+                    SizeMode = PictureBoxSizeMode.Zoom,
+                    Size = new Size(w, h),
+                    BackColor = Color.Transparent,
+                    Left = (ClientSize.Width - w) / 2,
+                    Top = LogoTop
+                };
+
+                Controls.Add(logo);
+                return logo.Bottom;
+            }
+            catch
+            {
+                return fallbackBottom;
+            }
+        }
+
+        // Als content onderaan buiten de form valt, maken we de form hoger.
+        private void EnsureFits(int requiredBottom)
+        {
+            int needed = Math.Max(AppMinHeight, requiredBottom);
+            if (ClientSize.Height < needed)
+                ClientSize = new Size(AppWidth, needed);
         }
 
         private PerfCard MakeMiniCard(string title, Point location, int w, int h, Action onClick)
@@ -304,12 +362,10 @@ namespace PerformSwitch
             MouseDown += (_, __) => { pressed = true; Invalidate(); };
             MouseUp += (_, __) =>
             {
-                if (pressed)
-                {
-                    pressed = false;
-                    Invalidate();
-                    Clicked?.Invoke(this, EventArgs.Empty);
-                }
+                if (!pressed) return;
+                pressed = false;
+                Invalidate();
+                Clicked?.Invoke(this, EventArgs.Empty);
             };
         }
 
@@ -321,6 +377,7 @@ namespace PerformSwitch
             g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
 
             int a = pressed ? 130 : hovered ? 110 : 85;
+
             using var bg = new SolidBrush(Color.FromArgb(a, 0, 0, 0));
             g.FillRounded(bg, new Rectangle(0, 0, Width - 1, Height - 1), 10);
 
