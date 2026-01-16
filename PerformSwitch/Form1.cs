@@ -27,6 +27,9 @@ namespace PerformSwitch
         private const int AppMinHeight = 600;
 
 
+
+        //------------HIER START DE CODE VAN DE APPLICATIE------------//
+
         //--------De constructor--------//
         public Form1()
         {
@@ -279,9 +282,7 @@ namespace PerformSwitch
                 Neon = Color.FromArgb(255, 180, 0),
                 Location = location,
                 Size = new Size(w, h),
-                Cursor = Cursors.Hand,
-                ShowDot = false,
-                BigText = false
+                Cursor = Cursors.Hand
             };
             c.Clicked += (_, __) => onClick();
             return c;
@@ -355,28 +356,15 @@ namespace PerformSwitch
         public string SubTitle { get; set; } = "";
         public Color Neon { get; set; } = Color.Lime;
 
-        public bool ShowDot { get; set; } = true;
-        public bool BigText { get; set; } = true;
-
         public event EventHandler? Clicked;
-
-        bool hovered, pressed;
 
         public PerfCard()
         {
             DoubleBuffered = true;
             BackColor = Color.Transparent;
 
-            MouseEnter += (_, __) => { hovered = true; Invalidate(); };
-            MouseLeave += (_, __) => { hovered = false; pressed = false; Invalidate(); };
-            MouseDown += (_, __) => { pressed = true; Invalidate(); };
-            MouseUp += (_, __) =>
-            {
-                if (!pressed) return;
-                pressed = false;
-                Invalidate();
-                Clicked?.Invoke(this, EventArgs.Empty);
-            };
+            //Klikken blijft werken zoals vroeger (Clicked event)
+            Click += (_, __) => Clicked?.Invoke(this, EventArgs.Empty);
         }
 
         protected override void OnPaint(PaintEventArgs e)
@@ -386,39 +374,29 @@ namespace PerformSwitch
             var g = e.Graphics;
             g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
 
-            int a = pressed ? 130 : hovered ? 110 : 85;
+            //Achtergrond + border (simpel)
+            var rect = new Rectangle(0, 0, Width - 1, Height - 1);
 
-            using var bg = new SolidBrush(Color.FromArgb(a, 0, 0, 0));
-            g.FillRounded(bg, new Rectangle(0, 0, Width - 1, Height - 1), 10);
+            using var bg = new SolidBrush(Color.FromArgb(90, 0, 0, 0));
+            g.FillRounded(bg, rect, 10);
 
-            using var pen = new Pen(Color.FromArgb(200, Neon), hovered ? 2 : 1);
-            g.DrawRounded(pen, new Rectangle(0, 0, Width - 1, Height - 1), 10);
+            using var pen = new Pen(Color.FromArgb(200, Neon), 2);
+            g.DrawRounded(pen, rect, 10);
 
-            if (ShowDot)
-            {
-                using var dot = new SolidBrush(Color.FromArgb(230, Neon));
-                g.FillEllipse(dot, 14, (Height / 2) - 7, 14, 14);
-            }
-
-            using var titleFont = new Font("Segoe UI", BigText ? 12 : 11, FontStyle.Bold);
+            //Tekst (Title/SubTitle)
+            using var titleFont = new Font("Segoe UI", 11, FontStyle.Bold);
             using var subFont = new Font("Segoe UI", 9);
             using var subColor = new SolidBrush(Color.FromArgb(200, 255, 255, 255));
             using var center = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center };
 
             if (string.IsNullOrWhiteSpace(SubTitle))
             {
-                g.DrawString(Title, titleFont, Brushes.White, new Rectangle(0, 0, Width, Height), center);
+                g.DrawString(Title, titleFont, Brushes.White, rect, center);
             }
             else
             {
-                g.DrawString(Title, titleFont, Brushes.White, new Rectangle(0, 6, Width, 28), center);
-                g.DrawString(SubTitle, subFont, subColor, new Rectangle(0, 28, Width, 26), center);
-            }
-
-            if (pressed)
-            {
-                using var overlay = new SolidBrush(Color.FromArgb(35, 255, 255, 255));
-                g.FillRounded(overlay, new Rectangle(1, 1, Width - 3, Height - 3), 10);
+                g.DrawString(Title, titleFont, Brushes.White, new Rectangle(0, 6, Width, 26), center);
+                g.DrawString(SubTitle, subFont, subColor, new Rectangle(0, 30, Width, 18), center);
             }
         }
     }
