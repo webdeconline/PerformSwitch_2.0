@@ -50,12 +50,22 @@ namespace PerformSwitch
             MaximizeBox = true;
             StartPosition = FormStartPosition.CenterScreen;
 
+            //zorgt voor een vloeiende weergave en voorkomt knipperen
+            DoubleBuffered = true;
+            SetStyle(ControlStyles.OptimizedDoubleBuffer |
+                     ControlStyles.AllPaintingInWmPaint |
+                     ControlStyles.UserPaint, true);
+            UpdateStyles();
+
+            ResizeRedraw = true;
+
+
             ClientSize = StartClient;
             MinimumSize = new Size(MinClient.Width + (Width - ClientSize.Width), MinClient.Height + (Height - ClientSize.Height)); // incl. borders
 
             try
             {
-                BackgroundImage = Image.FromFile("background.png");
+                BackgroundImage = Image.FromFile("background3.png");
                 BackgroundImageLayout = ImageLayout.Stretch;
             }
             catch
@@ -101,6 +111,9 @@ namespace PerformSwitch
             if (TryGetBrightness(out int b)) bar.Value = b;
             bar.BrightnessChanged += (_, val) => { try { SetBrightness(val); } catch { } };
             Controls.Add(bar);
+
+            //----------------------SOUND BAR----------------------//
+
 
             //----------------------DE EXIT BUTTON----------------------//
             exit = new PerfCard
@@ -180,9 +193,9 @@ namespace PerformSwitch
             int h = ClientSize.Height;
 
             //de marges rondom de app schalen mee
-            int side = Clamp(w / 12, 16, 34);
-            int top = Clamp(h / 18, 16, 34);
-            int gap = Clamp(h / 30, 10, 18);
+            int side = Clamp(w / 14, 14, 28);
+            int top = Clamp(h / 40, 10, 18);
+            int gap = Clamp(h / 55, 8, 12);
 
             //de breedte van de content in het midden
             int contentW = Clamp(w - side * 2, 260, 520);
