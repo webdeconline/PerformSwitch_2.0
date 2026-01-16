@@ -170,9 +170,10 @@ namespace PerformSwitch
         }
 
 
-        //----------------------------------SETTING UP----------------------------------//
 
-        //------responsieve layout functie voor de app zodat die er op elke resolutie goed uitziet------//
+        //-------------------------------------------------------SETTING UP--------------------------------------------------------//
+
+        //responsieve layout functie voor de app zodat die er op elke resolutie goed uitziet
         private void LayoutNow()
         {
             int w = ClientSize.Width;
@@ -304,6 +305,7 @@ namespace PerformSwitch
 
 
         //----------------------LOGIC FUNCTIONS----------------------//
+        //hier word het power plan aangepast
         private void SetPowerPlan(string guid)
         {
             Process.Start(new ProcessStartInfo
@@ -314,7 +316,7 @@ namespace PerformSwitch
                 UseShellExecute = false
             });
         }
-
+        //hier word een app geopend via een uri of exe pad
         private void OpenApp(string? uri, string? exePath)
         {
             try
@@ -336,7 +338,7 @@ namespace PerformSwitch
                 MessageBox.Show("Kon de app niet openen. Pad/URI klopt misschien niet.", "PerformSwitch");
             }
         }
-
+        //hier word de huidige helderheid van het scherm opgehaald
         private bool TryGetBrightness(out int brightness)
         {
             brightness = 60;
@@ -352,7 +354,7 @@ namespace PerformSwitch
             catch { }
             return false;
         }
-
+        //hier word de helderheid van het scherm aangepast
         private void SetBrightness(int percent)
         {
             percent = Math.Clamp(percent, 0, 100);
