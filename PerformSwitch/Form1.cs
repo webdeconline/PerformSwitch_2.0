@@ -18,9 +18,8 @@ namespace PerformSwitch
 
         //DE STANDAARD LOGO INSTELLINGEN//
         private const int LogoTop = 55;
-        private const int LogoWidth = 420;
-        private const int LogoHeight = 300;
-        private const int GapAfterLogo = 1;
+        private const int LogoWidth = 360;
+        private const int LogoHeight = 400;
 
         //breedte blijft vast , maar de hoogte kan aangepast worden aan de hand van de content
         private const int AppWidth = 360;
@@ -34,6 +33,7 @@ namespace PerformSwitch
         public Form1()
         {
             BuildUi();
+
             SetupTray();
 
             //de app start en is zichtbaar in de taskbar
@@ -41,47 +41,8 @@ namespace PerformSwitch
             
         }
 
-        //------De tray setup------//
-        private void SetupTray()
-        {
-            var menu = new ContextMenuStrip();
-            menu.Items.Add("Exit", null, (_, __) => ExitApp());
 
-            trayIcon = new NotifyIcon
-            {
-                Icon = new Icon("PFS.ico"),
-                Text = "PerformSwitch",
-                Visible = true,
-                ContextMenuStrip = menu
-            };
-
-            trayIcon.MouseUp += (_, e) =>
-            {
-                if (e.Button != MouseButtons.Left) return;
-
-                if (Visible)
-                {
-                    Hide();
-                    ShowInTaskbar = false;
-                }
-                else
-                {
-                    ShowInTaskbar = true;
-                    WindowState = FormWindowState.Normal;
-                    Show();
-                    Activate();
-                }
-            };
-        }
-
-        //------Exit applicatie------//
-        private void ExitApp()
-        {
-            realExit = true;
-            trayIcon.Visible = false;
-            trayIcon.Dispose();
-            Application.Exit();
-        }
+        //----------------------------------------APPLICATIE UI SETUP----------------------------------------//
 
         //------De applicatie beginnen bouwen en hoe het eruit zal zien------//
         private void BuildUi()
@@ -109,8 +70,7 @@ namespace PerformSwitch
             //---------- LOGO ----------//
             y = AddLogoAndGetBottomY();
 
-            //Extra ruimte onder logo//
-            y += GapAfterLogo;
+            
 
             //----------QUICK LAUNCH----------//
             int miniW = 90, miniH = 40, gap = 12;
@@ -127,7 +87,9 @@ namespace PerformSwitch
 
             y += miniH + 25;
 
-            //----------PERFORMANCE CARDS----------//
+            //------------------PERFORMANCE CARDS------------------//
+
+            //de grootte en positie van de kaarten//
             int cardW = 290, cardH = 60, cardGap = 15;
             int cardX = (ClientSize.Width - cardW) / 2;
 
@@ -189,6 +151,8 @@ namespace PerformSwitch
             };
             Controls.Add(lbl);
 
+            //----------------BRIGHTNESS BAR----------------//
+
             //Brightness bar//
             var bar = new BrightnessBar
             {
@@ -197,12 +161,13 @@ namespace PerformSwitch
                 Left = (ClientSize.Width - 250) / 2,
                 Top = lbl.Bottom + 8
             };
+
             //Verander de brightness naar de gekozen waarde//
             if (TryGetBrightness(out int b)) bar.Value = b;
             bar.BrightnessChanged += (_, val) => { try { SetBrightness(val); } catch { } };
             Controls.Add(bar);
 
-            //----------EXIT----------//
+            //--------------------------EXIT KNOP--------------------------//
             var exit = new PerfCard
             {
                 Title = "Exit",
@@ -228,6 +193,119 @@ namespace PerformSwitch
             };
         }
 
+
+
+        //----------------------------------"instellingen" WERKING VAN DE APPLICATIE----------------------------------//
+
+        //--------------------TRAY SETUP--------------------//
+        private void SetupTray()
+        {
+            var menu = new ContextMenuStrip();
+            menu.Items.Add("Exit", null, (_, __) => ExitApp());
+
+            trayIcon = new NotifyIcon
+            {
+                Icon = new Icon("PFS.ico"),
+                Text = "PerformSwitch",
+                Visible = true,
+                ContextMenuStrip = menu
+            };
+
+            trayIcon.MouseUp += (_, e) =>
+            {
+                if (e.Button != MouseButtons.Left) return;
+
+                if (Visible)
+                {
+                    Hide();
+                    ShowInTaskbar = false;
+                }
+                else
+                {
+                    ShowInTaskbar = true;
+                    WindowState = FormWindowState.Normal;
+                    Show();
+                    Activate();
+                }
+            };
+        }
+
+
+        //--------------------Exit applicatie--------------------//
+        private void ExitApp()
+        {
+            realExit = true;
+            trayIcon.Visible = false;
+            trayIcon.Dispose();
+            Application.Exit();
+        }
+
+
+        //--------------------SET POWER PLAN--------------------//
+        private void SetPowerPlan(string guid)
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = "powercfg",
+                Arguments = $"/setactive {guid}",
+                CreateNoWindow = true,
+                UseShellExecute = false
+            });
+        }
+
+
+        //--------------------OPEN APPLICATIE--------------------//
+        private void OpenApp(string? uri, string? exePath)
+        {
+            try
+            {
+                if (!string.IsNullOrWhiteSpace(uri))
+                {
+                    Process.Start(new ProcessStartInfo(uri) { UseShellExecute = true });
+                    return;
+                }
+
+                if (!string.IsNullOrWhiteSpace(exePath))
+                {
+                    exePath = Environment.ExpandEnvironmentVariables(exePath);
+                    Process.Start(new ProcessStartInfo(exePath) { UseShellExecute = true });
+                }
+            }
+            catch
+            {
+                MessageBox.Show("Kon de app niet openen. Pad/URI klopt misschien niet.", "PerformSwitch");
+            }
+        }
+
+
+        //--------------------BRIGHTNESS FUNCTIES--------------------//
+        private bool TryGetBrightness(out int brightness)
+        {
+            brightness = 60;
+            try
+            {
+                using var searcher = new ManagementObjectSearcher(@"root\WMI", "SELECT * FROM WmiMonitorBrightness");
+                foreach (ManagementObject obj in searcher.Get())
+                {
+                    brightness = Convert.ToInt32(obj["CurrentBrightness"]);
+                    return true;
+                }
+            }
+            catch { }
+            return false;
+        }
+        private void SetBrightness(int percent)
+        {
+            percent = Math.Clamp(percent, 0, 100);
+            using var mclass = new ManagementClass("WmiMonitorBrightnessMethods");
+            mclass.Scope = new ManagementScope(@"\\.\root\wmi");
+            using var instances = mclass.GetInstances();
+            foreach (ManagementObject instance in instances)
+                instance.InvokeMethod("WmiSetBrightness", new object[] { 1, percent });
+        }
+
+
+
         // Voeg logo toe en geef de Y terug waar de content mag verdergaan.
         // Als logo te breed is, schalen we de breedte naar het scherm zodat het nooit buiten de app valt.
         private int AddLogoAndGetBottomY()
@@ -239,9 +317,7 @@ namespace PerformSwitch
             {
                 Image img = Image.FromFile("logo.png");
 
-                // ? Nooit buiten de app: max breedte = app breedte - marge
-                int maxW = ClientSize.Width - 40;
-                int w = Math.Min(LogoWidth, maxW);
+                
 
                 // Hoogte gebruiken zoals jij instelt (mag groot zijn)
                 int h = LogoHeight;
@@ -250,9 +326,9 @@ namespace PerformSwitch
                 {
                     Image = img,
                     SizeMode = PictureBoxSizeMode.Zoom,
-                    Size = new Size(w, h),
+                    Size = new Size(LogoWidth, h),
                     BackColor = Color.Transparent,
-                    Left = (ClientSize.Width - w) / 2,
+                    
                     Top = LogoTop
                 };
 
@@ -286,200 +362,5 @@ namespace PerformSwitch
             c.Clicked += (_, __) => onClick();
             return c;
         }
-
-        private void SetPowerPlan(string guid)
-        {
-            Process.Start(new ProcessStartInfo
-            {
-                FileName = "powercfg",
-                Arguments = $"/setactive {guid}",
-                CreateNoWindow = true,
-                UseShellExecute = false
-            });
-        }
-
-        private void OpenApp(string? uri, string? exePath)
-        {
-            try
-            {
-                if (!string.IsNullOrWhiteSpace(uri))
-                {
-                    Process.Start(new ProcessStartInfo(uri) { UseShellExecute = true });
-                    return;
-                }
-
-                if (!string.IsNullOrWhiteSpace(exePath))
-                {
-                    exePath = Environment.ExpandEnvironmentVariables(exePath);
-                    Process.Start(new ProcessStartInfo(exePath) { UseShellExecute = true });
-                }
-            }
-            catch
-            {
-                MessageBox.Show("Kon de app niet openen. Pad/URI klopt misschien niet.", "PerformSwitch");
-            }
-        }
-
-        // -------- BRIGHTNESS (WMI) --------
-        private bool TryGetBrightness(out int brightness)
-        {
-            brightness = 60;
-            try
-            {
-                using var searcher = new ManagementObjectSearcher(@"root\WMI", "SELECT * FROM WmiMonitorBrightness");
-                foreach (ManagementObject obj in searcher.Get())
-                {
-                    brightness = Convert.ToInt32(obj["CurrentBrightness"]);
-                    return true;
-                }
-            }
-            catch { }
-            return false;
-        }
-
-        private void SetBrightness(int percent)
-        {
-            percent = Math.Clamp(percent, 0, 100);
-            using var mclass = new ManagementClass("WmiMonitorBrightnessMethods");
-            mclass.Scope = new ManagementScope(@"\\.\root\wmi");
-            using var instances = mclass.GetInstances();
-            foreach (ManagementObject instance in instances)
-                instance.InvokeMethod("WmiSetBrightness", new object[] { 1, percent });
-        }
-    }
-
-    // -------- CARD --------
-    public class PerfCard : Panel
-    {
-        public string Title { get; set; } = "";
-        public string SubTitle { get; set; } = "";
-        public Color Neon { get; set; } = Color.Lime;
-
-        public event EventHandler? Clicked;
-
-        public PerfCard()
-        {
-            DoubleBuffered = true;
-            BackColor = Color.Transparent;
-
-            //Klikken blijft werken zoals vroeger (Clicked event)
-            Click += (_, __) => Clicked?.Invoke(this, EventArgs.Empty);
-        }
-
-        protected override void OnPaint(PaintEventArgs e)
-        {
-            base.OnPaint(e);
-
-            var g = e.Graphics;
-            g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
-
-            //Achtergrond + border (simpel)
-            var rect = new Rectangle(0, 0, Width - 1, Height - 1);
-
-            using var bg = new SolidBrush(Color.FromArgb(90, 0, 0, 0));
-            g.FillRounded(bg, rect, 10);
-
-            using var pen = new Pen(Color.FromArgb(200, Neon), 2);
-            g.DrawRounded(pen, rect, 10);
-
-            //Tekst (Title/SubTitle)
-            using var titleFont = new Font("Segoe UI", 11, FontStyle.Bold);
-            using var subFont = new Font("Segoe UI", 9);
-            using var subColor = new SolidBrush(Color.FromArgb(200, 255, 255, 255));
-            using var center = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center };
-
-            if (string.IsNullOrWhiteSpace(SubTitle))
-            {
-                g.DrawString(Title, titleFont, Brushes.White, rect, center);
-            }
-            else
-            {
-                g.DrawString(Title, titleFont, Brushes.White, new Rectangle(0, 6, Width, 26), center);
-                g.DrawString(SubTitle, subFont, subColor, new Rectangle(0, 30, Width, 18), center);
-            }
-        }
-    }
-
-    // -------- BRIGHTNESS BAR --------
-    public class BrightnessBar : Panel
-    {
-        public int Value { get; set; } = 60;
-        public event EventHandler<int>? BrightnessChanged;
-
-        bool dragging;
-
-        public BrightnessBar()
-        {
-            DoubleBuffered = true;
-            MouseDown += (_, e) => { dragging = true; SetFromMouse(e.X); };
-            MouseMove += (_, e) => { if (dragging) SetFromMouse(e.X); };
-            MouseUp += (_, __) => dragging = false;
-            MouseLeave += (_, __) => dragging = false;
-        }
-
-        void SetFromMouse(int mouseX)
-        {
-            int pad = 10;
-            int w = Width - pad * 2;
-            int x = Math.Clamp(mouseX - pad, 0, w);
-            Value = (int)Math.Round((x / (double)w) * 100);
-            Invalidate();
-            BrightnessChanged?.Invoke(this, Value);
-        }
-
-        protected override void OnPaint(PaintEventArgs e)
-        {
-            base.OnPaint(e);
-
-            var g = e.Graphics;
-            g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
-
-            var track = new Rectangle(10, 10, Width - 20, 8);
-            using var trackBrush = new SolidBrush(Color.FromArgb(120, 0, 0, 0));
-            g.FillRounded(trackBrush, track, 6);
-
-            int fillW = (int)(track.Width * (Value / 100.0));
-            var fillRect = new Rectangle(track.X, track.Y, Math.Max(0, fillW), track.Height);
-            using var fillBrush = new SolidBrush(Color.FromArgb(220, 255, 180, 0));
-            g.FillRounded(fillBrush, fillRect, 6);
-
-            int knobX = Math.Clamp(track.X + fillW, track.X, track.Right);
-            using var knobBrush = new SolidBrush(Color.FromArgb(230, 255, 180, 0));
-            g.FillEllipse(knobBrush, knobX - 7, track.Y - 6, 14, 14);
-
-            using var f = new Font("Segoe UI", 9, FontStyle.Bold);
-            using var br = new SolidBrush(Color.White);
-            using var fmt = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center };
-            g.DrawString($"{Value}%", f, br, new Rectangle(0, 22, Width, 18), fmt);
-        }
-    }
-
-    // -------- Rounded helpers --------
-    public static class GfxExt
-    {
-        public static void FillRounded(this Graphics g, Brush b, Rectangle r, int radius)
-        {
-            using var path = RoundedRect(r, radius);
-            g.FillPath(b, path);
-        }
-
-        public static void DrawRounded(this Graphics g, Pen p, Rectangle r, int radius)
-        {
-            using var path = RoundedRect(r, radius);
-            g.DrawPath(p, path);
-        }
-
-        static System.Drawing.Drawing2D.GraphicsPath RoundedRect(Rectangle r, int radius)
-        {
-            var path = new System.Drawing.Drawing2D.GraphicsPath();
-            int d = radius * 2;
-
-            path.AddArc(r.X, r.Y, d, d, 180, 90);
-            path.AddArc(r.Right - d, r.Y, d, d, 270, 90);
-            path.AddArc(r.Right - d, r.Bottom - d, d, d, 0, 90);
-            path.AddArc(r.X, r.Bottom - d, d, d, 90, 90);
-            path.CloseFigure();
-            return path;
-        }
-    }
+    }  
 }
