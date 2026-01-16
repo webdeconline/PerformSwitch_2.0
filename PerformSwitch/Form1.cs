@@ -304,8 +304,6 @@ namespace PerformSwitch
                 instance.InvokeMethod("WmiSetBrightness", new object[] { 1, percent });
         }
 
-
-
         // Voeg logo toe en geef de Y terug waar de content mag verdergaan.
         // Als logo te breed is, schalen we de breedte naar het scherm zodat het nooit buiten de app valt.
         private int AddLogoAndGetBottomY()
