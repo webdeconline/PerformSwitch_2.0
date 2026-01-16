@@ -33,13 +33,12 @@ namespace PerformSwitch
         //--------De constructor--------//
         public Form1()
         {
-            InitializeComponent();
             BuildUi();
             SetupTray();
 
-            ShowInTaskbar = false;
-            WindowState = FormWindowState.Minimized;
-            Hide();
+            //de app start en is zichtbaar in de taskbar
+            ShowInTaskbar = true;
+            
         }
 
         //------De tray setup------//
