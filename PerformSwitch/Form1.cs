@@ -28,7 +28,7 @@ namespace PerformSwitch
 
 
 
-        //------------HIER START DE CODE VAN DE APPLICATIE------------//
+        //------------------------------------HIER START DE CODE VAN DE APPLICATIE------------------------------------//
         //---we beginnen hier met de constructor en de setup van de tray icon---//
         //--------De constructor--------//
         public Form1()
