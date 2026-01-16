@@ -16,7 +16,7 @@ namespace PerformSwitch
             using var path = RoundedRect(r, radius);
             g.DrawPath(p, path);
         }
-
+        
         private static GraphicsPath RoundedRect(Rectangle r, int radius)
         {
             var path = new GraphicsPath();
