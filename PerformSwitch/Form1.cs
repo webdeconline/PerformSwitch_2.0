@@ -11,22 +11,23 @@ namespace PerformSwitch
         private NotifyIcon trayIcon;
         private bool realExit;
 
-        // Power plans
+        //De GUID van de power plans
         private const string BALANCED = "381b4222-f694-41f0-9685-ff5bb260df2e";
         private const string HIGH = "419fb91b-9550-4aa8-8462-c04d74c03b2e";
         private const string ULTIMATE = "f4ac255a-0e98-40c5-bec0-d2b600140b2b";
 
-        // ====== LOGO SETTINGS (pas dit zelf aan) ======
+        //DE STANDAARD LOGO INSTELLINGEN//
         private const int LogoTop = 55;
-        private const int LogoWidth = 420;   // <-- verander dit vrij
-        private const int LogoHeight = 400;   // <-- verander dit vrij
-        private const int GapAfterLogo = 18;
-        // =============================================
+        private const int LogoWidth = 420;
+        private const int LogoHeight = 300;
+        private const int GapAfterLogo = 1;
 
-        // App size (breedte blijft vast; hoogte kan automatisch groeien zodat niks overlap/afknipt)
+        //breedte blijft vast , maar de hoogte kan aangepast worden aan de hand van de content
         private const int AppWidth = 360;
         private const int AppMinHeight = 600;
 
+
+        //--------De constructor--------//
         public Form1()
         {
             InitializeComponent();
@@ -38,7 +39,7 @@ namespace PerformSwitch
             Hide();
         }
 
-        // ---------------- TRAY ----------------
+        //------De tray setup------//
         private void SetupTray()
         {
             var menu = new ContextMenuStrip();
@@ -71,6 +72,7 @@ namespace PerformSwitch
             };
         }
 
+        //------Exit applicatie------//
         private void ExitApp()
         {
             realExit = true;
@@ -79,7 +81,7 @@ namespace PerformSwitch
             Application.Exit();
         }
 
-        // ---------------- UI ----------------
+        //------De applicatie beginnen bouwen en hoe het eruit zal zien------//
         private void BuildUi()
         {
             Text = "PerformSwitch";
@@ -102,13 +104,13 @@ namespace PerformSwitch
 
             int y = 0;
 
-            // ---------- LOGO ----------
+            //---------- LOGO ----------//
             y = AddLogoAndGetBottomY();
 
-            // Extra ruimte onder logo
+            //Extra ruimte onder logo//
             y += GapAfterLogo;
 
-            // ---------- QUICK LAUNCH ----------
+            //----------QUICK LAUNCH----------//
             int miniW = 90, miniH = 40, gap = 12;
             int miniX = (ClientSize.Width - (miniW * 3 + gap * 2)) / 2;
 
@@ -123,10 +125,12 @@ namespace PerformSwitch
 
             y += miniH + 25;
 
-            // ---------- PERFORMANCE CARDS ----------
+            //----------PERFORMANCE CARDS----------//
             int cardW = 290, cardH = 60, cardGap = 15;
             int cardX = (ClientSize.Width - cardW) / 2;
 
+
+            //De Balanced kaart//
             var c1 = new PerfCard
             {
                 Title = "Balanced",
@@ -138,6 +142,7 @@ namespace PerformSwitch
             };
             c1.Clicked += (_, __) => SetPowerPlan(BALANCED);
 
+            //De High Performance kaart//
             var c2 = new PerfCard
             {
                 Title = "High Performance",
@@ -149,6 +154,7 @@ namespace PerformSwitch
             };
             c2.Clicked += (_, __) => SetPowerPlan(HIGH);
 
+            //De Ultimate Performance kaart//
             var c3 = new PerfCard
             {
                 Title = "Ultimate Performance",
@@ -160,13 +166,15 @@ namespace PerformSwitch
             };
             c3.Clicked += (_, __) => SetPowerPlan(ULTIMATE);
 
+            //Kaarten worden toegevoegd aan de form//
             Controls.Add(c1);
             Controls.Add(c2);
             Controls.Add(c3);
-
+            //Y positie wordt aangepast//
             y = c3.Bottom + 18;
 
-            // ---------- BRIGHTNESS ----------
+            //----------BRIGHTNESS----------//
+            //Brightness label//
             var lbl = new Label
             {
                 Text = "Brightness",
@@ -179,6 +187,7 @@ namespace PerformSwitch
             };
             Controls.Add(lbl);
 
+            //Brightness bar//
             var bar = new BrightnessBar
             {
                 Size = new Size(250, 40),
@@ -186,11 +195,12 @@ namespace PerformSwitch
                 Left = (ClientSize.Width - 250) / 2,
                 Top = lbl.Bottom + 8
             };
+            //Verander de brightness naar de gekozen waarde//
             if (TryGetBrightness(out int b)) bar.Value = b;
             bar.BrightnessChanged += (_, val) => { try { SetBrightness(val); } catch { } };
             Controls.Add(bar);
 
-            // ---------- EXIT ----------
+            //----------EXIT----------//
             var exit = new PerfCard
             {
                 Title = "Exit",
