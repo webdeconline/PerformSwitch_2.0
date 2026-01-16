@@ -6,7 +6,7 @@ namespace PerformSwitch
 {
     public class BrightnessBar : Panel
     {
-        public int Value { get; set; } = 60;
+        public int Value { get; set; } = 100;
         public event EventHandler<int>? BrightnessChanged;
 
         private bool dragging;

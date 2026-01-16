@@ -11,53 +11,45 @@ namespace PerformSwitch
         private NotifyIcon trayIcon;
         private bool realExit;
 
-        //De GUID van de power plans
+        // Power plans GUIDs
         private const string BALANCED = "381b4222-f694-41f0-9685-ff5bb260df2e";
         private const string HIGH = "419fb91b-9550-4aa8-8462-c04d74c03b2e";
         private const string ULTIMATE = "f4ac255a-0e98-40c5-bec0-d2b600140b2b";
 
-        //DE STANDAARD LOGO INSTELLINGEN//
-        private const int LogoTop = 55;
-        private const int LogoWidth = 360;
-        private const int LogoHeight = 400;
+        // Start size (kleiner dan vroeger)
+        private static readonly Size StartClient = new Size(360, 780);
 
-        //breedte blijft vast , maar de hoogte kan aangepast worden aan de hand van de content
-        private const int AppWidth = 360;
-        private const int AppMinHeight = 600;
+        // Minimum size: voorkomt scrollen (je kan niet kleiner dan dit)
+        private static readonly Size MinClient = new Size(300, 760);
 
+        // UI refs
+        private PictureBox? logo;
+        private PerfCard? miniSteam, miniDiscord, miniEpic;
+        private PerfCard? c1, c2, c3;
+        private Label? lblBrightness;
+        private BrightnessBar? bar;
+        private PerfCard? exit;
 
-
-        //------------------------------------HIER START DE CODE VAN DE APPLICATIE------------------------------------//
-        //---we beginnen hier met de constructor en de setup van de tray icon---//
-        //--------De constructor--------//
         public Form1()
         {
             BuildUi();
-
             SetupTray();
-
-            //de app start en is zichtbaar in de taskbar
             ShowInTaskbar = true;
-            
         }
 
-
-        //----------------------------------------APPLICATIE UI SETUP----------------------------------------//
-
-        //------De applicatie beginnen bouwen en hoe het eruit zal zien------//
         private void BuildUi()
         {
             Text = "PerformSwitch";
-            FormBorderStyle = FormBorderStyle.FixedSingle;
-            MaximizeBox = false;
+            FormBorderStyle = FormBorderStyle.Sizable;
+            MaximizeBox = true;
             StartPosition = FormStartPosition.CenterScreen;
 
-            // We starten met minimum size; later verhogen we hoogte indien nodig
-            ClientSize = new Size(AppWidth, AppMinHeight);
+            ClientSize = StartClient;
+            MinimumSize = new Size(MinClient.Width + (Width - ClientSize.Width), MinClient.Height + (Height - ClientSize.Height)); // incl. borders
 
             try
             {
-                BackgroundImage = Image.FromFile("background.png");
+                BackgroundImage = Image.FromFile("background2.jpg");
                 BackgroundImageLayout = ImageLayout.Stretch;
             }
             catch
@@ -65,122 +57,57 @@ namespace PerformSwitch
                 BackColor = Color.Black;
             }
 
-            int y = 0;
+            // ------- Logo -------
+            logo = TryCreateLogo();
+            if (logo != null) Controls.Add(logo);
 
-            //---------- LOGO ----------//
-            y = AddLogoAndGetBottomY();
+            // ------- Quick launch -------
+            miniSteam = MakeMiniCard("Steam", () => OpenApp("steam://open/main", @"C:\Program Files (x86)\Steam\Steam.exe"));
+            miniDiscord = MakeMiniCard("Discord", () => OpenApp(null, @"%LOCALAPPDATA%\Discord\Update.exe"));
+            miniEpic = MakeMiniCard("Epic", () => OpenApp(null, @"C:\Program Files (x86)\Epic Games\Launcher\Portal\Binaries\Win64\EpicGamesLauncher.exe"));
 
-            
+            Controls.Add(miniSteam);
+            Controls.Add(miniDiscord);
+            Controls.Add(miniEpic);
 
-            //----------QUICK LAUNCH----------//
-            int miniW = 90, miniH = 40, gap = 12;
-            int miniX = (ClientSize.Width - (miniW * 3 + gap * 2)) / 2;
+            // ------- Performance cards -------
+            c1 = MakeCard("Balanced", "Quiet", Color.FromArgb(0, 255, 120), () => SetPowerPlan(BALANCED));
+            c2 = MakeCard("High Performance", "Fast", Color.FromArgb(80, 170, 255), () => SetPowerPlan(HIGH));
+            c3 = MakeCard("Ultimate Performance", "Gaming", Color.FromArgb(255, 120, 0), () => SetPowerPlan(ULTIMATE));
 
-            Controls.Add(MakeMiniCard("Steam", new Point(miniX, y), miniW, miniH,
-                () => OpenApp("steam://open/main", @"C:\Program Files (x86)\Steam\Steam.exe")));
-
-            Controls.Add(MakeMiniCard("Discord", new Point(miniX + miniW + gap, y), miniW, miniH,
-                () => OpenApp(null, @"%LOCALAPPDATA%\Discord\Update.exe")));
-
-            Controls.Add(MakeMiniCard("Epic", new Point(miniX + (miniW + gap) * 2, y), miniW, miniH,
-                () => OpenApp(null, @"C:\Program Files (x86)\Epic Games\Launcher\Portal\Binaries\Win64\EpicGamesLauncher.exe")));
-
-            y += miniH + 25;
-
-            //------------------PERFORMANCE CARDS------------------//
-
-            //de grootte en positie van de kaarten//
-            int cardW = 290, cardH = 60, cardGap = 15;
-            int cardX = (ClientSize.Width - cardW) / 2;
-
-
-            //De Balanced kaart//
-            var c1 = new PerfCard
-            {
-                Title = "Balanced",
-                SubTitle = "Quiet",
-                Neon = Color.FromArgb(0, 255, 120),
-                Location = new Point(cardX, y),
-                Size = new Size(cardW, cardH),
-                Cursor = Cursors.Hand
-            };
-            c1.Clicked += (_, __) => SetPowerPlan(BALANCED);
-
-            //De High Performance kaart//
-            var c2 = new PerfCard
-            {
-                Title = "High Performance",
-                SubTitle = "Fast",
-                Neon = Color.FromArgb(80, 170, 255),
-                Location = new Point(cardX, y + cardH + cardGap),
-                Size = new Size(cardW, cardH),
-                Cursor = Cursors.Hand
-            };
-            c2.Clicked += (_, __) => SetPowerPlan(HIGH);
-
-            //De Ultimate Performance kaart//
-            var c3 = new PerfCard
-            {
-                Title = "Ultimate Performance",
-                SubTitle = "Gaming",
-                Neon = Color.FromArgb(255, 120, 0),
-                Location = new Point(cardX, y + (cardH + cardGap) * 2),
-                Size = new Size(cardW, cardH),
-                Cursor = Cursors.Hand
-            };
-            c3.Clicked += (_, __) => SetPowerPlan(ULTIMATE);
-
-            //Kaarten worden toegevoegd aan de form//
             Controls.Add(c1);
             Controls.Add(c2);
             Controls.Add(c3);
-            //Y positie wordt aangepast//
-            y = c3.Bottom + 18;
 
-            //----------BRIGHTNESS----------//
-            //Brightness label//
-            var lbl = new Label
+            // ------- Brightness -------
+            lblBrightness = new Label
             {
                 Text = "Brightness",
                 AutoSize = true,
                 BackColor = Color.Transparent,
                 ForeColor = Color.White,
-                Font = new Font("Segoe UI", 10),
-                Left = (ClientSize.Width - 80) / 2,
-                Top = y
+                Font = new Font("Segoe UI", 10)
             };
-            Controls.Add(lbl);
+            Controls.Add(lblBrightness);
 
-            //----------------BRIGHTNESS BAR----------------//
-
-            //Brightness bar//
-            var bar = new BrightnessBar
-            {
-                Size = new Size(250, 40),
-                BackColor = Color.Transparent,
-                Left = (ClientSize.Width - 250) / 2,
-                Top = lbl.Bottom + 8
-            };
-
-            //Verander de brightness naar de gekozen waarde//
+            bar = new BrightnessBar { BackColor = Color.Transparent };
             if (TryGetBrightness(out int b)) bar.Value = b;
             bar.BrightnessChanged += (_, val) => { try { SetBrightness(val); } catch { } };
             Controls.Add(bar);
 
-            //--------------------------EXIT KNOP--------------------------//
-            var exit = new PerfCard
+            // ------- Exit -------
+            exit = new PerfCard
             {
                 Title = "Exit",
                 Neon = Color.FromArgb(255, 120, 0),
-                Size = new Size(140, 42),
-                Location = new Point((ClientSize.Width - 140) / 2, bar.Bottom + 8),
                 Cursor = Cursors.Hand
             };
             exit.Clicked += (_, __) => ExitApp();
             Controls.Add(exit);
 
-            // ? Zorg dat ALLES altijd in beeld past (geen overlap + geen afknippen)
-            EnsureFits(exit.Bottom + 12);
+            // Layout: 1 functie die alles herpositioneert + resizet
+            Shown += (_, __) => LayoutNow();
+            Resize += (_, __) => LayoutNow();
 
             FormClosing += (_, e) =>
             {
@@ -193,11 +120,133 @@ namespace PerformSwitch
             };
         }
 
+        // ===================== RESPONSIVE LAYOUT (NO SCROLL) =====================
+        private void LayoutNow()
+        {
+            int w = ClientSize.Width;
+            int h = ClientSize.Height;
 
+            // margins/gaps schalen een beetje mee
+            int side = Clamp(w / 12, 16, 34);
+            int top = Clamp(h / 18, 16, 34);
+            int gap = Clamp(h / 30, 10, 18);
 
-        //----------------------------------"instellingen" WERKING VAN DE APPLICATIE----------------------------------//
+            // content width (cards/balk)
+            int contentW = Clamp(w - side * 2, 260, 520);
+            int centerX = (w - contentW) / 2;
 
-        //--------------------TRAY SETUP--------------------//
+            int y = top;
+
+            // ---- Logo ----
+            if (logo != null)
+            {
+                int logoH = Clamp((int)(h * 0.32), 130, 260); // kleiner bij klein venster, groter bij groot venster
+                logo.SetBounds(centerX, y, contentW, logoH);
+                y += logoH + gap;
+            }
+
+            // ---- Quick launch (3 mini cards) ----
+            int miniGap = Clamp(w / 40, 8, 14);
+            int miniH = Clamp((int)(h * 0.075), 32, 44);
+
+            int miniW = (contentW - miniGap * 2) / 3;
+            miniW = Clamp(miniW, 70, 140);
+
+            int quickRowW = miniW * 3 + miniGap * 2;
+            int quickX = (w - quickRowW) / 2;
+
+            miniSteam?.SetBounds(quickX, y, miniW, miniH);
+            miniDiscord?.SetBounds(quickX + miniW + miniGap, y, miniW, miniH);
+            miniEpic?.SetBounds(quickX + (miniW + miniGap) * 2, y, miniW, miniH);
+
+            y += miniH + gap + 4;
+
+            // ---- Performance cards ----
+            int cardH = Clamp((int)(h * 0.11), 52, 72);
+            int cardGap = Clamp(h / 28, 10, 16);
+
+            int cardW = Clamp(contentW, 260, 520);
+            int cardX = (w - cardW) / 2;
+
+            c1?.SetBounds(cardX, y, cardW, cardH);
+            y += cardH + cardGap;
+
+            c2?.SetBounds(cardX, y, cardW, cardH);
+            y += cardH + cardGap;
+
+            c3?.SetBounds(cardX, y, cardW, cardH);
+            y += cardH + gap;
+
+            // ---- Brightness ----
+            if (lblBrightness != null)
+            {
+                lblBrightness.Top = y;
+                lblBrightness.Left = (w - lblBrightness.Width) / 2;
+                y = lblBrightness.Bottom + 6;
+            }
+
+            int barH = Clamp((int)(h * 0.08), 34, 44);
+            int barW = Clamp(contentW - 40, 220, 520);
+            int barX = (w - barW) / 2;
+
+            bar?.SetBounds(barX, y, barW, barH);
+            y += barH + gap;
+
+            // ---- Exit ----
+            int exitH = Clamp((int)(h * 0.08), 36, 46);
+            int exitW = Clamp((int)(contentW * 0.55), 140, 260);
+            int exitX = (w - exitW) / 2;
+
+            exit?.SetBounds(exitX, y, exitW, exitH);
+        }
+
+        private static int Clamp(int v, int min, int max) => v < min ? min : (v > max ? max : v);
+
+        // ===================== UI FACTORIES =====================
+        private PictureBox? TryCreateLogo()
+        {
+            try
+            {
+                var img = Image.FromFile("logo.png");
+                return new PictureBox
+                {
+                    Image = img,
+                    SizeMode = PictureBoxSizeMode.Zoom,
+                    BackColor = Color.Transparent
+                };
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        private PerfCard MakeMiniCard(string title, Action onClick)
+        {
+            var c = new PerfCard
+            {
+                Title = title,
+                Neon = Color.FromArgb(255, 180, 0),
+                Cursor = Cursors.Hand
+            };
+            c.Clicked += (_, __) => onClick();
+            return c;
+        }
+
+        private PerfCard MakeCard(string title, string sub, Color neon, Action onClick)
+        {
+            var c = new PerfCard
+            {
+                Title = title,
+                SubTitle = sub,
+                Neon = neon,
+                Cursor = Cursors.Hand
+            };
+            c.Clicked += (_, __) => onClick();
+            return c;
+        }
+
+        // ===================== TRAY =====================
         private void SetupTray()
         {
             var menu = new ContextMenuStrip();
@@ -230,8 +279,6 @@ namespace PerformSwitch
             };
         }
 
-
-        //--------------------Exit applicatie--------------------//
         private void ExitApp()
         {
             realExit = true;
@@ -240,8 +287,7 @@ namespace PerformSwitch
             Application.Exit();
         }
 
-
-        //--------------------SET POWER PLAN--------------------//
+        // ===================== LOGIC =====================
         private void SetPowerPlan(string guid)
         {
             Process.Start(new ProcessStartInfo
@@ -253,8 +299,6 @@ namespace PerformSwitch
             });
         }
 
-
-        //--------------------OPEN APPLICATIE--------------------//
         private void OpenApp(string? uri, string? exePath)
         {
             try
@@ -277,8 +321,6 @@ namespace PerformSwitch
             }
         }
 
-
-        //--------------------BRIGHTNESS FUNCTIES--------------------//
         private bool TryGetBrightness(out int brightness)
         {
             brightness = 60;
@@ -294,6 +336,7 @@ namespace PerformSwitch
             catch { }
             return false;
         }
+
         private void SetBrightness(int percent)
         {
             percent = Math.Clamp(percent, 0, 100);
@@ -303,62 +346,5 @@ namespace PerformSwitch
             foreach (ManagementObject instance in instances)
                 instance.InvokeMethod("WmiSetBrightness", new object[] { 1, percent });
         }
-
-        // Voeg logo toe en geef de Y terug waar de content mag verdergaan.
-        // Als logo te breed is, schalen we de breedte naar het scherm zodat het nooit buiten de app valt.
-        private int AddLogoAndGetBottomY()
-        {
-            // default als logo ontbreekt
-            int fallbackBottom = LogoTop;
-
-            try
-            {
-                Image img = Image.FromFile("logo.png");
-
-                
-
-                // Hoogte gebruiken zoals jij instelt (mag groot zijn)
-                int h = LogoHeight;
-
-                var logo = new PictureBox
-                {
-                    Image = img,
-                    SizeMode = PictureBoxSizeMode.Zoom,
-                    Size = new Size(LogoWidth, h),
-                    BackColor = Color.Transparent,
-                    
-                    Top = LogoTop
-                };
-
-                Controls.Add(logo);
-                return logo.Bottom;
-            }
-            catch
-            {
-                return fallbackBottom;
-            }
-        }
-
-        // Als content onderaan buiten de form valt, maken we de form hoger.
-        private void EnsureFits(int requiredBottom)
-        {
-            int needed = Math.Max(AppMinHeight, requiredBottom);
-            if (ClientSize.Height < needed)
-                ClientSize = new Size(AppWidth, needed);
-        }
-
-        private PerfCard MakeMiniCard(string title, Point location, int w, int h, Action onClick)
-        {
-            var c = new PerfCard
-            {
-                Title = title,
-                Neon = Color.FromArgb(255, 180, 0),
-                Location = location,
-                Size = new Size(w, h),
-                Cursor = Cursors.Hand
-            };
-            c.Clicked += (_, __) => onClick();
-            return c;
-        }
-    }  
+    }
 }
