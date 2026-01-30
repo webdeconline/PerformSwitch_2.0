@@ -33,6 +33,7 @@ namespace PerformSwitch
        
         public Form1()
         {
+            this.Icon = new Icon("PFS.ico");
             //hier start de programma
             BuildUi();
             //tray icoon word aangemaakt
@@ -40,6 +41,8 @@ namespace PerformSwitch
             //zorgt ervoor dat de app in de taakbalk komt
             ShowInTaskbar = true;
         }
+        
+
 
 
         //----------------------START APPLICATIE----------------------//
